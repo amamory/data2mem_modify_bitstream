@@ -109,8 +109,8 @@ proc Reorder_Labels {labelList} {
 #     ACCORDING TO THE DESIGN !!!!!
 #
 ##########################################
-set design_name bit_modif
-set top_name bit_modif_wrapper
+#set design_name bit_modif
+#set top_name bit_modif_wrapper
 set data_width 32
 # its depth is 8192
 set data_depth [expr pow(2, 13)]
