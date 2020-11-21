@@ -34,7 +34,7 @@ set design_name bit_modif
 set top_name bit_modif_wrapper
 set data_width 32
 # its depth is 8192
-set data_depth [expr pow(2, 12)]
+set data_depth [expr pow(2, 13)]
 
 # number of independent memort banks
 set num_mem 2
@@ -99,8 +99,8 @@ for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
     # Remove duplicates, although there shouldn't be any
     set bmmUniqueList [lsort -unique $bmmList]
 
-    # a hack to fix the size of the RAM blocks. blk_mem_gen_0 * 2 == blk_mem_gen_1
-    set top_addr_int [expr ($data_depth * ($mem_cnt+1)) -1]
+    # calculate to top addr based on its size
+    set top_addr_int [expr $data_depth -1]
     set top_addr  [format "%X" [int ${top_addr_int}]] 
 
     #
