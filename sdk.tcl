@@ -29,7 +29,7 @@ if {![file exist $bsp_dir]} {
 }
 
 # Each directory inside the src dir will become and xSDK's Application Project
-set list_apps [glob -directory ./src/ -type d *]
+set list_apps [glob -directory ./src/zynq -type d *]
 puts "$list_apps"
 # Now, build each application
 foreach app_dir_name $list_apps {
@@ -57,7 +57,7 @@ foreach app_dir_name $list_apps {
         set file_name [file tail $path_file]
         #puts "$file_name"
         exec rm ./vivado/${design_name}/${design_name}.sdk/$app_prj_name/src/$file_name
-        exec ln -s ../../../../../src/$app_prj_name/$file_name ./vivado/${design_name}/${design_name}.sdk/$app_prj_name/src/
+        exec ln -s ../../../../../src/zynq/$app_prj_name/$file_name ./vivado/${design_name}/${design_name}.sdk/$app_prj_name/src/
     }
 }
 

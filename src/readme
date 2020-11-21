@@ -1,5 +1,7 @@
 
-If this design uses processors and runs software applications, these applications should be here.
+If this design uses ARM processors and runs software applications, these applications should be ./src/zynq.
 Create a subdir for each application. The name of the dir will be used to name the application.
 
-Dont place any other dir or file here.
+The elf file (for the BRAMs in the PL part) to be merged with the bitstream is located in ./src/processor-based.
+
+Dont place any other dir or file in these folders.

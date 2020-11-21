@@ -14,6 +14,14 @@ if [ -f $VIVADO ]; then
   echo "######## Synthesis ######"
   echo "#########################"
   $VIVADO -mode batch -source build_bitstream_export_sdk.tcl -notrace
+  # If elf file exists, then this is a processor based design.
+  # This means that the processor's RAM content must be loaded into the bitstream
+  if [ -f "./src/processor-based/image.elf" ]; then
+    echo "##############################################"
+    echo "######## Loading Elf into the bitstream ######"
+    echo "##############################################"
+    $VIVADO -mode batch -source extract_bmm.tcl -notrace
+  fi
   # count xml files to decide whether this project is a leaf custom IP or a design that uses custom IPs
   # For instance, considering this command executed in the project root dir:
   #$ find hw/ips/*/ -name *.xml
@@ -27,8 +35,7 @@ if [ -f $VIVADO ]; then
   # if the component.xml is found in more than 3 dir layers, then this project uses custom IPs
   # Finally, there is no component.xml at all under hw/ips, then this project does not use any custom IP
   leafIPs=$(find hw/ips/*/ -maxdepth 1 -name *.xml | wc -l) 
-  if [ "$leafIPs" -eq 0 ]; 
-  then
+  if [ "$leafIPs" -eq 0 ]; then
     echo "#########################"
     echo "### Loading bitstream ###"
     echo "#########################"
@@ -38,12 +45,11 @@ if [ -f $VIVADO ]; then
     echo "#########################"
   fi;
   # check whether there is any software to be compiled, i.e., if there is any dir inside src/
-  list_dirs=`ls -d ./src/*/ 2> /dev/null`
+  list_dirs=`ls -d ./src/zynq/*/ 2> /dev/null`
   # build a bash list 
   has_software=($list_dirs)
   # check if len(list) > 0
-  if [ "${#has_software[@]}" -gt 0 ]; 
-  then
+  if [ "${#has_software[@]}" -gt 0 ]; then
     echo "#########################"
     echo "### Compiling w SDK  ###"
     echo "#########################"

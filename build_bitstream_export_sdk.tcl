@@ -28,7 +28,7 @@ wait_on_run impl_1
 
 # If the src dir has not apps to be compiled, then this is a hardware only project.
 # no need to export the hardware to SDK and to run SDK
-set app_list [glob -nocomplain -type d -dir src "*"]
+set app_list [glob -nocomplain -type d -dir ./src/zynq "*"]
 if {[llength $app_list] != 0} {
     # exporting hw design to SDK
     file mkdir ./vivado/${design_name}/${design_name}.sdk

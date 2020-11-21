@@ -1,7 +1,7 @@
 # Processor-based designs have internal BRAMs that must be loaded with theirs initial contents.
 # This script lists all its BRAMs to get its location (i.e. cell property LOC) into the FPGA.
 # Processor-based designs have internal BRAMs that must be loaded with theirs initial contents.
-# This script identifies the BRAMs of each memory bank to create a BMM file.
+# This script identifies the BRAMs of each memory block to create a BMM file.
 # This BMM is required to run data2mem, which allows to update the bitstream with the memory content.
 #
 # Author: Alexandre Amory, November 2020
@@ -11,7 +11,10 @@
 # - https://china.xilinx.com/support/answers/59259.html
 # - Xilinx Data2MEM User Guide (UG658)
 # - https://www.xilinx.com/support/documentation/sw_manuals/xilinx14_5/data2mem.pdf
-
+#
+# TODO:
+# - read the BRAM property 'bmm_info_memory_device	[31:16][0:2047]' to get a accurate BRAM info
+#   making a more robust script
 
 #if { ![info exists env(VIVADO_DESIGN_NAME)] } {
 #    puts "ERROR: Please set the environment variable VIVADO_DESIGN_NAME before running the script"
@@ -30,36 +33,40 @@
 #
 namespace import ::tcl::mathfunc::*
 
+
+##########################################
+#
+#    THESE VARIABLES MUST BE CHANGED 
+#     ACCORDING TO THE DESIGN !!!!!
+#
+##########################################
 set design_name bit_modif
 set top_name bit_modif_wrapper
 set data_width 32
 # its depth is 8192
 set data_depth [expr pow(2, 13)]
-
-# number of independent memort banks
+# number of independent memory blocks
 set num_mem 2
 
-#puts ${data_width}
-#puts ${data_depth}
-#puts ${top_addr}
-
+# open the design and the name of the implementation where the bitstream have been created
+# assuminig the implementation 'impl_1'. Adapt it otherwise.
 open_project ./vivado/${design_name}/${design_name}.xpr
 open_run impl_1 -name impl_1
 
 set myInsts [get_cells -hier -filter {PRIMITIVE_TYPE =~ BMEM.*.*}]
 puts "Raw Number for Instances: [llength $myInsts]"
 
-# Open a file to put the data into.
+# Open the BMM file to put describe the memory organization.
 set fp [open mem_dump.bmm w+]
 
-# for each memory bank, find its BRAMs
+# for each memory block, find its BRAMs
 for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
     puts "generating the BMM for memory # $mem_cnt"
     # the name of the memory block defined in the block diagram
     set mem_label "blk_mem_gen_$mem_cnt"
-    set bmmList {}; # make it empty incase you were running it interactively
+    set bmmList {}; # make it empty in case you were running it interactively
 
-    # this first loop separates only the BRAMs of this memory bank
+    # this first loop separates only the BRAMs of this memory block
     set bram_List {};
     foreach memInst $myInsts {
         # First occurrence of $mem_label in $memInst
@@ -67,18 +74,20 @@ for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
             lappend bram_List $memInst
         }
     }
-    # this is used to set the datawidth of each BRAM of this memory bank
+    # this is used to set the data width of each BRAM of this memory block
     set bram_width [expr $data_width / [llength $bram_List]]
     #puts "BRAM width ${bram_width}"
     set cnt 0
     foreach memInst $bram_List {
         # this is the property we need
         #LOC                             site     false      RAMB36_X6Y39
-        
-        #report_property $memInst LOC
         set loc [get_property LOC $memInst]
-        # for BMM the location is just the XY location so remove the extra data
-        set loc [string trimleft $loc RAMB36_]
+        #report_property $memInst LOC
+        # for BMM the location is just the XY location (e.g. X6Y39) 
+        # so remove the extra data, e.g. RAMB36_
+        #set loc [string trimleft $loc RAMB36_]
+        # this splits the string using the _ as a separator and take the index [1] of the list, discarding the 'RAMB36_' part
+        set loc [lrange [split $loc _] 1 1]
         # find the bus index, this is specific to our design
         set busindex [string range $memInst [string first \[ $memInst] [string last \] $memInst]]
         # build a list in a format which is close to the output we need
@@ -112,10 +121,11 @@ for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
     # Assuming the starting address of the elf file is 0x00000000. If it is not the case,
     # then this line must match the elf starting address
     puts $fp "ADDRESS_SPACE memory_$mem_cnt COMBINED \[0x00000000:0x00000${top_addr}\]"
-    puts $fp "  ADDRESS_RANGE RAMB32\n     BUS_BLOCK"
+    puts $fp "  ADDRESS_RANGE RAMB32"
+    puts $fp "     BUS_BLOCK"
     foreach printList [lsort -dictionary $bmmUniqueList] {
         #DEBUG: puts "Processing $printList"
-        puts "Processing $printList"
+        #puts "Processing $printList"
         puts $fp "       $printList;"
     }
     puts $fp "     END_BUS_BLOCK;"
@@ -126,7 +136,7 @@ for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
 close $fp
 
 # insert the elf file into the bitstream
-exec data2mem -bm mem_dump.bmm -bd image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
+exec data2mem -bm mem_dump.bmm -bd ./src/processor-based/image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
 
 # cleanup
 unset myInsts
