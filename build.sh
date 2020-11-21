@@ -1,9 +1,9 @@
 # Set these variables accordingly before executing the script
 #export VIVADO=/opt/Xilinx/Vivado/2018.2/bin/vivado
 export VIVADO=/home/lsa/xilinx/2018.2/Vivado/2018.2/bin/vivado
-export VIVADO_DESIGN_NAME=ps_hermes
+export VIVADO_DESIGN_NAME=bit_modif
 export VIVADO_TOP_NAME=${VIVADO_DESIGN_NAME}_wrapper
-export XIL_APP_NAME=dma_test
+export XIL_APP_NAME=bram_test
 
 if [ -f $VIVADO ]; then
   echo "###################################"

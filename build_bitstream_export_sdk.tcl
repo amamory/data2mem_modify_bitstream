@@ -17,12 +17,12 @@ if { ![info exists env(VIVADO_TOP_NAME)] } {
 # check the command 'launch_runs' learn more
 # the valid steps are:
 #  - opt_design, power_opt_design, place_design, route_design, phys_opt_design, and write_bitstream
-set syntesis_step opt_design
+set syntesis_step write_bitstream
 
 # Generate bitstream
 open_project ./vivado/${design_name}/${design_name}.xpr
 update_compile_order -fileset sources_1
-reset_run -quiet impl_1
+#reset_run -quiet impl_1
 launch_runs impl_1 -to_step $syntesis_step -jobs 8
 wait_on_run impl_1
 
@@ -44,16 +44,10 @@ if {[llength $app_list] != 0} {
 
 open_run synth_1 -name synth_1
 puts "========================"
-puts "Timing report"
+puts "Generating reports ..."
 puts "========================"
-report_timing_summary
-puts "========================"
-puts "Area report"
-puts "========================"
-report_utilization
-puts "========================"
-puts "Power report"
-puts "========================"
-report_power
+report_timing_summary > timing.rpt
+report_utilization > utilization.rpt
+report_power > power.rpt
 
 close_design -quiet

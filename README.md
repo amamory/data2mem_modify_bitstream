@@ -1,16 +1,56 @@
-# Vivado MODULE NAME
+# Vivado Bitstream Modify
 
-This repo contains scripts to recreate **DESCRIBE THE MODULE HERE**. The project is setup for Zedboard, although it would be easy to change to other boards assuming you have some basic TCL skills.
+This repo has a design to test bitstream modification to insert data from an .elf file into BRAMs.
 
-# How to Use Vivado
+# The Example Block Design
 
-[Vipin Kizheppatt](https://www.youtube.com/watch?v=ahws--oNpBc&list=PLXHMvqUANAFOviU0J8HSp0E91lLJInzX1) provides a great set of more than 70 extremely didatic videos. As a personal experience, I would strongly suggest that as a starting point.
+This design uses the Zynq connected to two independent memory banks, one configured 
+with single port, 32bits data width, and 8192 addr depth. The other one configured 
+with single port, 32bits data width, and 4096 addr depth.
 
-# Module/IP design
+![Block](block.png)
 
-Describe here your module interface and protocols.
+When executing the TCL command in the Vivado terminal
 
-![Place here a nice picture of your design](my-awesome-module.png)
+   get_cells -hier -filter {PRIMITIVE_TYPE =~ BMEM.*.*}
+
+The return is 
+
+   - design_1_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram
+   - design_1_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram
+   - design_1_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[1].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram
+
+representing the BRAMs in the design. The 1sf cell belongs to the memory block blk_mem_gen_0 while the 2nd and 3rd ones to the memory block blk_mem_gen_1.
+
+
+# The BMM Extraction
+
+The extract_bmm.tcl opens the synthesized design, finds the existing BRAMs,
+and map them into the memory blocks blk_mem_gen_0 and blk_mem_gen_1
+
+The resulting BMM file is like this
+
+   ADDRESS_SPACE memory_0 COMBINED [0x00000000:0x00000FFF]
+   ADDRESS_RANGE RAMB32
+      BUS_BLOCK
+         bit_modif_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [0] [31:0] LOC=X3Y17;
+      END_BUS_BLOCK;
+   END_ADDRESS_RANGE;
+   END_ADDRESS_SPACE;
+
+   ADDRESS_SPACE memory_1 COMBINED [0x00000000:0x00001FFF]
+   ADDRESS_RANGE RAMB32
+      BUS_BLOCK
+         bit_modif_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [0] [15:0] LOC=X3Y13;
+         bit_modif_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[1].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [1] [31:16] LOC=X3Y14;
+      END_BUS_BLOCK;
+   END_ADDRESS_RANGE;
+   END_ADDRESS_SPACE;
+
+By the end of the TCL script, *data2mem* is executed to insert the elf file into the bitstream *new.bit*.
+
+
+   data2mem -bm mem_dump.bmm -bd image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
 
 # How to use this repository
 
@@ -60,8 +100,11 @@ Solve any conflict manually and then commit.
 
 # Future work
 
- - update the scripts to Vitis
- - support or test with Windows (help required !!! :D )
+ - use also updatemem
+ 
+# How to Use Vivado
+
+[Vipin Kizheppatt](https://www.youtube.com/watch?v=ahws--oNpBc&list=PLXHMvqUANAFOviU0J8HSp0E91lLJInzX1) provides a great set of more than 70 extremely didatic videos. As a personal experience, I would strongly suggest that as a starting point.
 
 # Credits
 
