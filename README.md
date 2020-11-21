@@ -52,7 +52,7 @@ ADDRESS_RANGE RAMB32
 END_ADDRESS_RANGE;
 ```
 
-By the end of the TCL script, *data2mem* is executed in the Linux terminal to insert the elf file into the bitstream *new.bit*.
+By the end of the [extract_bmm.tcl](./extract_bmm.tcl) TCL script, *data2mem* is executed in the Linux terminal to insert the elf file into the bitstream *new.bit*.
 
 ```
 $ data2mem -bm mem_dump.bmm -bd ./src/processor-based/image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
