@@ -11,9 +11,11 @@ with single port, 32bits data width, and 8192 addr depth.
 
 When executing the TCL command in the Vivado terminal
 
+```
    get_cells -hier -filter {PRIMITIVE_TYPE =~ BMEM.*.*}
+```
 
-The return is 
+The output is 
 
    - design_1_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram
    - design_1_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[1].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram
@@ -30,33 +32,37 @@ and map them into the memory blocks blk_mem_gen_0 and blk_mem_gen_1
 
 The resulting BMM file is like this
 
-   ADDRESS_SPACE memory_0 COMBINED [0x00000000:0x000001FFF]
-   ADDRESS_RANGE RAMB32
-      BUS_BLOCK
-         bit_modif_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [0] [15:0] LOC=X3Y20;
-         bit_modif_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[1].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [1] [31:16] LOC=X3Y19;
-      END_BUS_BLOCK;
-   END_ADDRESS_RANGE;
-   END_ADDRESS_SPACE;
+```
+ADDRESS_SPACE memory_0 COMBINED [0x00000000:0x000001FFF]
+ADDRESS_RANGE RAMB32
+   BUS_BLOCK
+      bit_modif_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [0] [15:0] LOC=X3Y20;
+      bit_modif_i/blk_mem_gen_0/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[1].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [1] [31:16] LOC=X3Y19;
+   END_BUS_BLOCK;
+END_ADDRESS_RANGE;
+END_ADDRESS_SPACE;
 
-   ADDRESS_SPACE memory_1 COMBINED [0x00000000:0x000001FFF]
-   ADDRESS_RANGE RAMB32
-      BUS_BLOCK
-         bit_modif_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [0] [15:0] LOC=X3Y22;
-         bit_modif_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[1].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [1] [31:16] LOC=X3Y21;
-      END_BUS_BLOCK;
-   END_ADDRESS_RANGE;
-   END_ADDRESS_SPACE;
+ADDRESS_SPACE memory_1 COMBINED [0x00000000:0x000001FFF]
+ADDRESS_RANGE RAMB32
+   BUS_BLOCK
+      bit_modif_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[0].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [0] [15:0] LOC=X3Y22;
+      bit_modif_i/blk_mem_gen_1/U0/inst_blk_mem_gen/gnbram.gnative_mem_map_bmg.native_mem_map_blk_mem_gen/valid.cstr/ramloop[1].ram.r/prim_noinit.ram/DEVICE_7SERIES.WITH_BMM_INFO.SP.SIMPLE_PRIM36.SP_NO_ECC_ATTR.ram [1] [31:16] LOC=X3Y21;
+   END_BUS_BLOCK;
+END_ADDRESS_RANGE;
+```
 
 By the end of the TCL script, *data2mem* is executed to insert the elf file into the bitstream *new.bit*.
 
-
-   data2mem -bm mem_dump.bmm -bd image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
+```
+data2mem -bm mem_dump.bmm -bd image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
+```
 
 To check whether the new bitstream is updated, it is possible to dump the BRAM's content with
 the following command:
 
-   data2mem -bm mem_dump.bmm -bt new.bit -d > dump.txt
+```
+data2mem -bm mem_dump.bmm -bt new.bit -d > dump.txt
+```
 
 Then open the dump.txt and search for 'bit_modif_i' to find the written BRAMs.
 
