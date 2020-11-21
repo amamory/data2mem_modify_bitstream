@@ -4,15 +4,16 @@ This repo has a design to test bitstream modification to insert data from an .el
 
 # The Example Block Design
 
-This design uses the Zynq connected to two independent memory banks, both configured 
-with single port, 32bits data width, and 8192 addr depth. 
+This design uses the Zynq connected to two independent memory banks, called
+*blk_mem_gen_0* and *blk_mem_gen_1*, both configured with single port, 
+32bits data width, and 8192 addr depth. 
 
 ![Block](block.png)
 
 When executing the TCL command in the Vivado terminal
 
 ```
-   get_cells -hier -filter {PRIMITIVE_TYPE =~ BMEM.*.*}
+$ get_cells -hier -filter {PRIMITIVE_TYPE =~ BMEM.*.*}
 ```
 
 The output is 
@@ -28,7 +29,7 @@ representing the BRAMs in the design. The 1st two cell belongs to the memory blo
 # The BMM Extraction
 
 The extract_bmm.tcl opens the synthesized design, finds the existing BRAMs,
-and map them into the memory blocks blk_mem_gen_0 and blk_mem_gen_1
+and map them into the memory blocks *blk_mem_gen_0* and *blk_mem_gen_1*.
 
 The resulting BMM file is like this
 
@@ -51,40 +52,21 @@ ADDRESS_RANGE RAMB32
 END_ADDRESS_RANGE;
 ```
 
-By the end of the TCL script, *data2mem* is executed to insert the elf file into the bitstream *new.bit*.
+By the end of the TCL script, *data2mem* is executed in the Linux terminal to insert the elf file into the bitstream *new.bit*.
 
 ```
-data2mem -bm mem_dump.bmm -bd image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
+$ data2mem -bm mem_dump.bmm -bd ./src/processor-based/image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
 ```
 
 To check whether the new bitstream is updated, it is possible to dump the BRAM's content with
-the following command:
+the following command in the Linux terminal:
 
 ```
-data2mem -bm mem_dump.bmm -bt new.bit -d > dump.txt
+$ data2mem -bm mem_dump.bmm -bt new.bit -d > dump.txt
 ```
 
-Then open the dump.txt and search for 'bit_modif_i' to find the written BRAMs.
+Then open the dump.txt and search for *bit_modif_i* to find the written BRAMs.
 
-# How to use this repository
-
-These scripts presented here are quite reusable if you keep the same dir structure. It should be useful for other Vivado/SDK projects with minor efforts. For this reason this repository is a template. Just click in **Use this Template** button to replicate it for your own project.
-
-In command line, create an empty repository called *<your-reponame>* in github and follow these steps to use it as a template:
-
-```
-mkdir <my-new-project>
-cd <my-new-project>
-git clone https://github.com/amamory/vivado-base-project.git .
-rm -rf .git
-git init
-git remote set-url origin https://github.com/<your-username>/<your-reponame>
-git add * .gitignore
-git commit -m "my initial commit"
-git push origin master
-```
-
-Each directory has instructions related to the kind of file you have to place in them.
 
 # How to run it
 
@@ -98,7 +80,7 @@ Follow these instructions to recreate the Vivado and SDK projects:
     - **VIVADO_TOP_NAME**: set the top name (optional).  
  - run *build.sh*
 
-These scripts will recreate the entire Vivado project, compile the design, generate the bitstream, export the hardware to SDK, create the SDK projects, import the source files, build all projects, and finally download both the bitstream and the elf application. Hopefully, all these steps will be executed automatically.
+These scripts will recreate the entire Vivado project, compile the design, generate the bitstream, update the bitstream with the elf file, export the hardware to SDK, create the SDK projects, import the source files, build all projects, and finally download both the bitstream and the elf application. Hopefully, all these steps will be executed automatically.
 
 # How to update the scripts
 
@@ -114,7 +96,7 @@ Solve any conflict manually and then commit.
 
 # Future work
 
- - use also updatemem
+ - use also [updatemem](https://www.xilinx.com/support/answers/63041.html)
  
 # How to Use Vivado
 
