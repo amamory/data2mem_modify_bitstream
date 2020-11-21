@@ -20,24 +20,88 @@
 #    - https://www.xilinx.com/support/answers/63041.html
 #    - chapter 7 in https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_3/ug898-vivado-embedded-design.pdf
 
-
-#if { ![info exists env(VIVADO_DESIGN_NAME)] } {
-#    puts "ERROR: Please set the environment variable VIVADO_DESIGN_NAME before running the script"
-#    return
-#}
-#set design_name $::env(VIVADO_DESIGN_NAME)
-#puts "Using design name: ${design_name}"
-#
-#if { ![info exists env(VIVADO_TOP_NAME)] } {
-#    puts "WARNING: No top design defined. Using the default top name ${design_name}_wrapper"
-#    set top_name ${design_name}_wrapper
-#} else {
-#  set top_name $::env(VIVADO_TOP_NAME)
-#  puts "Using top name: ${top_name}"
-#}
-#
 namespace import ::tcl::mathfunc::*
 
+if { ![info exists env(VIVADO_DESIGN_NAME)] } {
+   puts "ERROR: Please set the environment variable VIVADO_DESIGN_NAME before running the script"
+   return
+}
+set design_name $::env(VIVADO_DESIGN_NAME)
+puts "Using design name: ${design_name}"
+
+if { ![info exists env(VIVADO_TOP_NAME)] } {
+   puts "WARNING: No top design defined. Using the default top name ${design_name}_wrapper"
+   set top_name ${design_name}_wrapper
+} else {
+ set top_name $::env(VIVADO_TOP_NAME)
+ puts "Using top name: ${top_name}"
+}
+
+# An issue when there are more than 10 BRAMs is that the labels are recieved in 
+# alphabetical order. For example, it would return:
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_0
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_1
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_10
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_11
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_12
+#...
+# Instead of:
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_0
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_1
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_2
+#...
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_10
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_11
+#orca_zed_i/orca_top_0/U0/proc[1].orca_tile/proc_tile_mem_binding/ram_reg_12
+#
+# The order is relevant, otherwise the bits will be inverted into the BRAMs.
+#
+# One solution is to split the list according to the label lengths, 
+# which is equivalent to split the lists by units, tens, hundreds, etc
+# Once they are split, then sort each list, and finally, combine the lists
+# again into a single list.
+# The following procedure does this 'hack' to fix the order of the labels.
+#
+proc Reorder_Labels {labelList} {
+    set sortedList {}
+
+    # get the shortest string in the labelList (units)
+    set shortest 10000
+    foreach label $labelList {
+        if {[string length $label] < $shortest} {
+            set shortest [string length $label]
+        }
+    }
+
+    # lists to separe the labels by lenght
+    set unitsList {}
+    set tensList {}
+    set hundsList {}
+
+    # I dont expect to have more than 999 BRAM in a single RAM block.
+    # So, 3 digits is ok
+    foreach label $labelList {
+        set labelLen [string length $label]
+        if {$labelLen == $shortest} {
+            lappend unitsList $label
+        } elseif {$labelLen == [expr $shortest + 1]} {
+            lappend tensList $label
+        } elseif {$labelLen == [expr $shortest + 2]} {
+            lappend hundsList $label
+        } else {
+            error "ERROR: that's quite a memory !!!!"
+        }
+    }
+
+    # Now that the list is separated into 3 lists, 
+    # it is necessary to sort these lists and combine them into a single list
+    set unitsList [lsort $unitsList]
+    set tensList [lsort $tensList]
+    set hundsList [lsort $hundsList]
+    set sortedList [concat $unitsList $tensList $hundsList]
+
+    return $sortedList
+}
 
 ##########################################
 #
@@ -61,13 +125,19 @@ open_run impl_1 -name impl_1
 set myInsts [get_cells -hier -filter {PRIMITIVE_TYPE =~ BMEM.*.*}]
 puts "Raw Number for Instances: [llength $myInsts]"
 
-# Open the BMM file to put describe the memory organization.
+# Open the BMM file to describe the memory organization.
 set fp [open mem_dump.bmm w+]
 
 # for each memory block, find its BRAMs
 for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
     puts "generating the BMM for memory # $mem_cnt"
-    # the name of the memory block defined in the block diagram
+    # all BRAMs found under this label belong to the same memory block
+    ###################################
+    #
+    #    THIS LABEL MUST BE CHANGED 
+    #   ACCORDING TO THE DESIGN !!!!!
+    #
+    ###################################
     set mem_label "blk_mem_gen_$mem_cnt"
     set bmmList {}; # make it empty in case you were running it interactively
 
@@ -79,9 +149,17 @@ for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
             lappend bram_List $memInst
         }
     }
+    # reorder the list of labels
+    set bram_List [Reorder_Labels $bram_List]
     # this is used to set the data width of each BRAM of this memory block
     set bram_width [expr $data_width / [llength $bram_List]]
-    #puts "BRAM width ${bram_width}"
+    #puts "BRAM width ${bram_width} - $data_width - [llength $bram_List]"
+    if {[expr $data_width % [llength $bram_List]] != 0} {
+        error "ERROR in data witdth ${data_width} and number of BRAMs [llength $bram_List]"
+    }
+    if {$bram_width < 1} {
+        error "ERROR in BRAM witdth ${bram_width}. Expecting at least 1 bit."
+    }
     set cnt 0
     foreach memInst $bram_List {
         # this is the property we need
@@ -142,19 +220,19 @@ close $fp
 
 # Check if necessary files are present
 if {![file exists ./mem_dump.bmm]} {
-    error "ERROR! BMM-file $bit_file is not found."
+    error "ERROR! BMM-file ./mem_dump.bmm is not found."
 }
 if {![file exists ./src/processor-based/image.elf]} {
-    error "ERROR! Elf-file $mem_file is not found."
+    error "ERROR! Elf-file ./src/processor-based/image.elf is not found."
 }
-if {![file exists ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit]} {
-    error "ERROR! Bit-file $mem_file is not found."
+if {![file exists ./vivado/${design_name}/${design_name}.runs/impl_1/${top_name}.bit]} {
+    error "ERROR! Bit-file ./vivado/${design_name}/${design_name}.runs/impl_1/${top_name}.bit is not found."
 }
 
 # insert the elf file into the bitstream
 # TODO improve the error recover for executing data2mem
 # example in https://github.com/alishbakanwal/Xilinx_Vivado_Lab_Tools/blob/master/Xilinx_Vivado_Lab_Tools/scripts/updatemem/main.tcl
-exec data2mem -bm ./mem_dump.bmm -bd ./src/processor-based/image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
+exec data2mem -bm ./mem_dump.bmm -bd ./src/processor-based/image.elf -bt ./vivado/${design_name}/${design_name}.runs/impl_1/${top_name}.bit -o b new.bit
 
 # cleanup
 unset myInsts

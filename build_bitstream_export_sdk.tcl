@@ -22,11 +22,11 @@ set syntesis_step write_bitstream
 # Generate bitstream
 open_project ./vivado/${design_name}/${design_name}.xpr
 update_compile_order -fileset sources_1
-#reset_run -quiet impl_1
+reset_run -quiet impl_1
 launch_runs impl_1 -to_step $syntesis_step -jobs 8
 wait_on_run impl_1
 
-# If the src dir has not apps to be compiled, then this is a hardware only project.
+# If the src/zynq dir has not apps to be compiled, then this is a hardware only project.
 # no need to export the hardware to SDK and to run SDK
 set app_list [glob -nocomplain -type d -dir ./src/zynq "*"]
 if {[llength $app_list] != 0} {

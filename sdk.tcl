@@ -28,7 +28,7 @@ if {![file exist $bsp_dir]} {
     openbsp bsp1
 }
 
-# Each directory inside the src dir will become and xSDK's Application Project
+# Each directory inside the src/zynq dir will become and xSDK's Application Project
 set list_apps [glob -directory ./src/zynq -type d *]
 puts "$list_apps"
 # Now, build each application
