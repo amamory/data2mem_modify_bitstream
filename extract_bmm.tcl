@@ -61,7 +61,7 @@ if { ![info exists env(VIVADO_TOP_NAME)] } {
 # Once they are split, then sort each list, and finally, combine the lists
 # again into a single list.
 # The following procedure does this 'hack' to fix the order of the labels.
-#
+# 
 proc Reorder_Labels {labelList} {
     set sortedList {}
 
