@@ -15,6 +15,11 @@
 # TODO:
 # - read the BRAM property 'bmm_info_memory_device	[31:16][0:2047]' to get a accurate BRAM info
 #   making a more robust script
+# - use also updatemem to update the bitstream
+#    - https://github.com/yzt000000/scr1_fpga/blob/master/fpga-sdk-prj-master/scripts/xilinx/mem_update.tcl
+#    - https://www.xilinx.com/support/answers/63041.html
+#    - chapter 7 in https://www.xilinx.com/support/documentation/sw_manuals/xilinx2017_3/ug898-vivado-embedded-design.pdf
+
 
 #if { ![info exists env(VIVADO_DESIGN_NAME)] } {
 #    puts "ERROR: Please set the environment variable VIVADO_DESIGN_NAME before running the script"
@@ -135,8 +140,21 @@ for { set mem_cnt 0}  {$mem_cnt < $num_mem} {incr mem_cnt} {
 }
 close $fp
 
+# Check if necessary files are present
+if {![file exists ./mem_dump.bmm]} {
+    error "ERROR! BMM-file $bit_file is not found."
+}
+if {![file exists ./src/processor-based/image.elf]} {
+    error "ERROR! Elf-file $mem_file is not found."
+}
+if {![file exists ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit]} {
+    error "ERROR! Bit-file $mem_file is not found."
+}
+
 # insert the elf file into the bitstream
-exec data2mem -bm mem_dump.bmm -bd ./src/processor-based/image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
+# TODO improve the error recover for executing data2mem
+# example in https://github.com/alishbakanwal/Xilinx_Vivado_Lab_Tools/blob/master/Xilinx_Vivado_Lab_Tools/scripts/updatemem/main.tcl
+exec data2mem -bm ./mem_dump.bmm -bd ./src/processor-based/image.elf -bt ./vivado/bit_modif/bit_modif.runs/impl_1/bit_modif_wrapper.bit -o b new.bit
 
 # cleanup
 unset myInsts
